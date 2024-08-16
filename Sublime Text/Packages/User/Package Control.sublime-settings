@@ -1,0 +1,23 @@
+{
+	"bootstrapped": true,
+	"in_process_packages":
+	[
+	],
+	"installed_packages":
+	[
+		"All Autocomplete",
+		"auto-save",
+		"ayu",
+		"C++ Completions",
+		"Clang Format",
+		"CppFastOlympicCoding",
+		"Elm Format on Save",
+		"Formatter",
+		"LSP",
+		"LSP-clangd",
+		"LSP-copilot",
+		"LSP-pyright",
+		"Package Control",
+		"PackageResourceViewer",
+	],
+}
