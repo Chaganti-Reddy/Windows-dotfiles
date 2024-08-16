@@ -1,0 +1,5 @@
+{
+	"selector": "source.cpp",
+	"clangd.clang-tidy": true,
+	"enabled": true,
+}
