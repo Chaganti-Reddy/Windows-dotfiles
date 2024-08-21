@@ -1,24 +1,25 @@
 # 🧜‍♀️ Formatter
 
-Formatter is a simple config-file-driven plugin for Sublime Text `3` & `4` to beautify and minify source code.<br />
-In _theory_, it can also be used as a platform to convert any form of text, beyond beautifying and minifying.
+Formatter is a versatile config-file-driven plugin for Sublime Text `3` & `4` to beautify and minify source code.<br />
+In _theory_, it can also serve as a platform to transform any form of text, beyond beautifying and minifying.
 
 **Key features:**
 
-- Supports more than 70 major programming languages.
-- Includes over 80 preset adapters for various [plugins](#plugins).
-- Formats text in various ways:
+- Supports more than 70 major programming languages via [plugins](#plugins).
+- Transforms text in various ways:
   - Text-to-Text (Text diagramms, ASCII art, etc.)
   - Text-to-Image (Image diagramms, QR-code images, etc.)
 - Capable to format entire files, single or multiple selections.
 - Capable to format entire directory recursively.
 - Operates more accurately based on syntax scope, **not** file extension.
-- Works with both saved and unsaved files (buffer).
+- Works with both saved and unsaved dirty files (buffer).
 - Unified settings across different systems.
 - Supports [auto-detect formatting](#auto-detect-formatting).
 - Supports [per-project formatting](#per-project-formatting).
 - Capable to format on Save.
+  - with options to exclude files, dirs, extensions, syntaxes
 - Capable to format on Paste.
+  - dito
 - Shared config files available for each 3rd-party plugin.
 - Displays real-time word and character counts.
 - Automatically remembers and restores text position.
@@ -157,7 +158,7 @@ Formatter is useless without third-party plugins. It relies on external plugins 
 
 💡 **Tips**:
 
-- [prettier](https://github.com/prettier/prettier) and [stylelint](https://github.com/stylelint/stylelint) and can collaborate to format `CSS`
+- [prettier](https://github.com/prettier/prettier) and [stylelint](https://github.com/stylelint/stylelint) can collaborate to format `CSS`
 
     <details>
     <summary><sub>Config example</sub></summary>
@@ -900,7 +901,7 @@ Developing a module for Formatter is straightforward. All you need to do is crea
    Details as an example:
 
    ```py
-   from .. import log                                          # REQUIRED: log to debugging this file
+   from .. import log                                          # optional: log to debugging this file
    from ..core.common import Module                            # REQUIRED: a collection of APIs to assist in running this file
 
 
