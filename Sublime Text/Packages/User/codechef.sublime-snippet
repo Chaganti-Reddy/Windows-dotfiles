@@ -1,6 +1,6 @@
 <snippet>
   <content><![CDATA[
-// Author: Chaganti Reddy
+// Author: Karna
 // Link: $0
 
 #pragma clang diagnostic ignored "-Wunused-variable"
