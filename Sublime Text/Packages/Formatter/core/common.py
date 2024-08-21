@@ -1,8 +1,10 @@
+import abc
 import hashlib
 import json
 import os
 import re
 import shutil
+import signal
 import struct
 import tempfile
 from copy import deepcopy
@@ -13,13 +15,17 @@ from subprocess import PIPE, Popen, TimeoutExpired
 import sublime
 
 from . import (are_all_strings_in_list, check_deprecated_api,
-               check_deprecated_options, disable_logging, enable_logging,
-               enable_status, log, retry_on_exception, transform_args,
-               validate_args)
+               check_deprecated_options, clean_output, disable_logging,
+               enable_logging, enable_status, log, retry_on_exception,
+               transform_args, validate_args)
 from .constants import (ASSETS_DIRECTORY, GFX_OUT_NAME, IS_WINDOWS, LAYOUTS,
                         PACKAGE_NAME, QUICK_OPTIONS_SETTING_FILE,
                         RECURSIVE_FAILURE_DIRECTORY,
                         RECURSIVE_SUCCESS_DIRECTORY)
+
+if IS_WINDOWS:
+    from subprocess import (CREATE_NEW_PROCESS_GROUP, STARTF_USESHOWWINDOW,
+                            STARTUPINFO, SW_HIDE)
 
 CONFIG = {}
 PROJECT_CONFIG = {}
@@ -31,13 +37,13 @@ class InstanceManager:
 
     @classmethod
     def get_instance(cls, class_name_or_instance, *args, **kwargs):
-        if isinstance(class_name_or_instance, str):  # if class_name is provided
+        if isinstance(class_name_or_instance, str):
             class_name = class_name_or_instance
             key = (class_name, *args)
             if key not in cls._instances:
                 cls._instances[key] = globals()[class_name](*args, **kwargs)
             return cls._instances[key]
-        else:  # if instance is provided
+        else:
             instance = class_name_or_instance
             key = (instance.__class__.__name__, *args)
             if key not in cls._instances:
@@ -46,12 +52,12 @@ class InstanceManager:
 
     @classmethod
     def reset_instance(cls, class_name_or_instance, *args):
-        if isinstance(class_name_or_instance, str):  # if class_name is provided
+        if isinstance(class_name_or_instance, str):
             class_name = class_name_or_instance
             key = (class_name, *args)
             if key in cls._instances:
                 del cls._instances[key]
-        else:  # if instance is provided
+        else:
             instance = class_name_or_instance
             key = (instance.__class__.__name__, *args)
             if key in cls._instances:
@@ -66,7 +72,7 @@ class InstanceManager:
 # === Module Class and Its Supporting Classes === #
 ###################################################
 
-class Module:
+class Module(abc.ABC):
     '''
     API solely for interacting with files located in the 'modules' folder.
     '''
@@ -82,6 +88,10 @@ class Module:
         self.type = type
         self.auto_format_config = auto_format_config
         self.kwargs = kwargs  # unused
+
+    @abc.abstractmethod
+    def format(self):
+        pass
 
     def is_executable(self, file):
         instance = InstanceManager.get_instance('FileHandler')
@@ -428,29 +438,39 @@ class ProcessHandler:
     @validate_args(are_all_strings_in_list, check_cmd=True)
     @transform_args(fix_cmd)
     def popen(self, cmd, stdout=PIPE):
+        cwd = PathHandler(view=self.view).get_pathinfo()['cwd']
+        env = EnvironmentHandler.update_environ()
         info = None
-        if IS_WINDOWS:
-            from subprocess import STARTF_USESHOWWINDOW, STARTUPINFO, SW_HIDE
 
-            # Hide the console window to avoid flashing an
-            # ugly cmd prompt on Windows when invoking plugin.
+        if IS_WINDOWS:
+            # Hide the console window
             info = STARTUPINFO()
             info.dwFlags |= STARTF_USESHOWWINDOW
             info.wShowWindow = SW_HIDE
 
-        # Input cmd must be a list of strings
-        self.process = Popen(
-            cmd, stdout=stdout, stdin=PIPE, stderr=PIPE,
-            cwd=PathHandler(view=self.view).get_pathinfo()['cwd'],
-            env=EnvironmentHandler.update_environ(), shell=IS_WINDOWS, startupinfo=info
-        )
+            # Input cmd must be a list of strings
+            self.process = Popen(
+                cmd, stdout=stdout, stdin=PIPE, stderr=PIPE, shell=True,
+                cwd=cwd, env=env, startupinfo=info,
+                creationflags=CREATE_NEW_PROCESS_GROUP
+            )
+        else:
+            self.process = Popen(
+                cmd, stdout=stdout, stdin=PIPE, stderr=PIPE, shell=False,
+                cwd=cwd, env=env, startupinfo=info
+            )
+
         return self.process
 
     def kill(self, process):
         try:
             if self.is_alive(process):
-                process.terminate()
-                process.wait(timeout=1)  # 1 sec
+                if IS_WINDOWS:
+                    os.kill(process.pid, signal.CTRL_BREAK_EVENT)
+                else:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                process.wait(timeout=1)  # 1s
+
             if self.is_alive(process):
                 process.kill()
                 process.wait(timeout=1)
@@ -511,6 +531,7 @@ class CommandHandler:
 
         return process.returncode, '' if outfile else stdout.decode('utf-8'), stderr.decode('utf-8')
 
+    @clean_output
     def exec_cmd(self, cmd, outfile=None):
         if outfile:
             with open(outfile, 'wb') as file:
@@ -1015,11 +1036,11 @@ class InterfaceHandler:
             sublime.error_message(message)
 
 
-#################################################
-# === Base Class and Its Supporting Classes === #
-#################################################
+#####################################################
+# === Extended Class and Its Supporting Classes === #
+#####################################################
 
-class Base(Module):  # unused
+class _Extended(Module):  # unused
     '''
     Extended API for universal use, inheriting all methods from the Module class.
     This subclass is never used and is included here for clarity and better overview only.
@@ -1162,13 +1183,13 @@ class CleanupHandler:
     def clear_console():
         if OptionHandler.query(CONFIG, True, 'clear_console'):
             if SUBLIME_PREFERENCES:
-                current = SUBLIME_PREFERENCES.get('console_max_history_lines', None)
-                if current is None:
+                orig = SUBLIME_PREFERENCES.get('console_max_history_lines', None)
+                if orig is None:
                     return  # not implemented in <ST4088
 
                 SUBLIME_PREFERENCES.set('console_max_history_lines', 1)
                 print('')
-                SUBLIME_PREFERENCES.set('console_max_history_lines', current)
+                SUBLIME_PREFERENCES.set('console_max_history_lines', orig)
 
 
 class ConfigHandler:
@@ -1240,7 +1261,7 @@ class ConfigHandler:
 
     @classmethod
     @check_deprecated_options
-    @retry_on_exception(retries=5, delay=500)  # 2 sec
+    @retry_on_exception(retries=5, delay=500)  # 2s
     def build_config(cls, settings):
         global CONFIG
 
@@ -1451,7 +1472,7 @@ class TransformHandler:
                 if any(pattern.match(extension) for pattern in exclude_extensions_regex_compiled):
                     continue
 
-                if TextHandler().is_text_file(file_path):
+                if TextHandler.is_text_file(file_path):
                     text_files.append(file_path)
 
         return text_files
@@ -1686,15 +1707,18 @@ class TextHandler:
             return False
 
     @staticmethod
-    def is_text_file(file_path):
+    def is_text_file(file_path, block_size=1024):
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'rb') as file:
+                chunk = file.read(block_size)
+                if not chunk:
+                    return False  # empty file
                 try:
-                    next(f)
-                except StopIteration:
+                    chunk.decode('utf-8')
+                except UnicodeDecodeError:
                     return False
-            return True
-        except UnicodeDecodeError:
+                return True
+        except Exception:
             return False
 
 
