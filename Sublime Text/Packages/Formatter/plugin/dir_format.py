@@ -4,10 +4,12 @@ import traceback
 import sublime
 
 from ..core import (CONFIG, ConfigHandler, InterfaceHandler, OptionHandler,
-                    PathHandler, SyntaxHandler, TransformHandler, check_stop, log)
+                    PathHandler, SyntaxHandler, TransformHandler, check_stop,
+                    log)
 from ..core.constants import (PACKAGE_NAME, RECURSIVE_FAILURE_DIRECTORY,
                               RECURSIVE_SUCCESS_DIRECTORY, STATUS_KEY)
 from ..core.formatter import Formatter
+from . import ActivityIndicator
 
 STOP = False
 
@@ -33,10 +35,15 @@ class DirFormat:
     def __init__(self, view, **kwargs):
         self.view = view
         self.kwargs = kwargs
+        self.indicator = None
 
     def run(self):
         global STOP
         STOP = False
+        CONFIG['STOP'] = False  # pause smanager and wcounter
+        # Show progress indicator if formatting takes longer than 1s
+        self.indicator = ActivityIndicator(self.view, 'In Progress...')
+        sublime.set_timeout(self.start_indicator, 1000)
 
         try:
             cwd = self.get_current_working_directory()
@@ -46,10 +53,23 @@ class DirFormat:
             self.process_files()
         except Exception as e:
             self.handle_error(e)
+        finally:
+            self.stop_indicator()
 
     def stop(self):
         global STOP
         STOP = True
+        CONFIG['STOP'] = True
+        self.stop_indicator()
+
+    def start_indicator(self):
+        if self.indicator:
+            self.indicator.start()
+
+    def stop_indicator(self):
+        if self.indicator:
+            self.indicator.stop()
+            self.indicator = None
 
     def get_current_working_directory(self):
         return PathHandler(view=self.view).get_pathinfo(self.view.file_name())['cwd']
@@ -92,8 +112,6 @@ class DirFormat:
             new_view = self.CONTEXT['entry_view'].window().open_file(file_path)
             self.CONTEXT['current_index'] += 1
 
-            # open_file() is asynchronous. Use EventListener on_load() to catch
-            # the returned view when the file is finished loading.
             if new_view.is_loading():
                 self.CONTEXT['new_view'] = new_view
             else:
@@ -207,8 +225,12 @@ class DirFormat:
             else:
                 self.CONTEXT[key] = None
         # Reset and end
+        CONFIG['STOP'] = True
+        self.stop_indicator()
 
     def handle_error(self, error, cwd=None, file_path=None):
+        self.stop_indicator()
+
         log.error('Error occurred: %s\n%s', error, ''.join(traceback.format_tb(error.__traceback__)))
         if cwd and (error.errno != os.errno.EEXIST):
             log.error('Could not create directory: %s', cwd)
