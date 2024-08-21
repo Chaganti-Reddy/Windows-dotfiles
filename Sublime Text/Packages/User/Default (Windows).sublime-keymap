@@ -11,6 +11,6 @@
         ]
     },
     { "keys": ["f10"], "command": "build", "args": {"select": true} },
-    
+    { "keys": ["ctrl+e"], "command": "toggle_side_bar" },
 ]
 
