@@ -58,29 +58,29 @@ local colorscheme = {
       '#F2F2F2', -- white
    },
    tab_bar = {
-      background = 'rgba(0, 0, 0, 0.4)',
-      active_tab = {
-         bg_color = mocha.surface2,
-         fg_color = mocha.text,
-      },
-      inactive_tab = {
-         bg_color = mocha.surface0,
-         fg_color = mocha.subtext1,
-      },
-      inactive_tab_hover = {
-         bg_color = mocha.surface0,
-         fg_color = mocha.text,
-      },
-      new_tab = {
-         bg_color = mocha.base,
-         fg_color = mocha.text,
-      },
-      new_tab_hover = {
-         bg_color = mocha.mantle,
-         fg_color = mocha.text,
-         italic = true,
-      },
+   background = '#1e1e2e',
+   active_tab = {
+      bg_color = '#313244',
+      fg_color = '#cdd6f4',
+      intensity = 'Bold',
    },
+   inactive_tab = {
+      bg_color = '#1e1e2e',
+      fg_color = '#585b70',
+   },
+   inactive_tab_hover = {
+      bg_color = '#313244',
+      fg_color = '#cdd6f4',
+   },
+   new_tab = {
+      bg_color = '#1e1e2e',
+      fg_color = '#585b70',
+   },
+   new_tab_hover = {
+      bg_color = '#313244',
+      fg_color = '#cdd6f4',
+   },
+},
    visual_bell = mocha.red,
    indexed = {
       [16] = mocha.peach,

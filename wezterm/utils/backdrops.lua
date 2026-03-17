@@ -210,6 +210,20 @@ function BackDrops:set_img(window, idx)
    self:_set_opt(window, self:_create_opts())
 end
 
+---Set a background by filename (e.g. 'frieren.jpeg') — no random lag on startup
+---@param name string filename of the image (just the basename)
+function BackDrops:set_img_by_name(name)
+   for idx, file in ipairs(self.images) do
+      if file:match('([^/\\\\]+)$') == name then
+         self.current_idx = idx
+         return self
+      end
+   end
+   wezterm.log_warn('BackDrops:set_img_by_name - image not found: ' .. name)
+   self.current_idx = 1
+   return self
+end
+
 ---Toggle the focus mode
 ---@param window any WezTerm `Window` see: https://wezfurlong.org/wezterm/config/lua/window/index.html
 function BackDrops:toggle_focus(window)
