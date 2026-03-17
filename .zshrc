@@ -146,7 +146,7 @@ alias myip='curl -s ifconfig.me'
 alias clr='clear'
 alias q='exit'
 alias reload='exec zsh'
-alias zshrc='${EDITOR:-nano} ~/.zshrc'
+alias zshrc='${EDITOR:-nvim} ~/.zshrc'
 
 # ── Key bindings ─────────────────────────────────────────────
 bindkey '^ '   autosuggest-accept
@@ -161,6 +161,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
-# zprof
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
 
 [[ -d /d ]] && builtin cd /d
+
