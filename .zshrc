@@ -1,167 +1,483 @@
 # ============================================================
-#  .zshrc — No OMZ, fast startup, exact original prompt style
+#  .zshrc — Native Windows, Git Bash + Zsh
 # ============================================================
 
-# zmodload zsh/zprof
-
-# ── Core env ────────────────────────────────────────────────
-export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
-export LANG=en_US.UTF-8
-
-# ── History ─────────────────────────────────────────────────
-HISTFILE=~/.zsh_history
-HISTSIZE=50000
-SAVEHIST=50000
-setopt SHARE_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS HIST_VERIFY
-
-# ── Completion: once per day, skip compaudit ─────────────────
+# ── Completion system ────────────────────────────────────────
 autoload -Uz compinit
-ZSH_COMPDUMP="${ZDOTDIR:-$HOME}/.zcompdump-${ZSH_VERSION}"
-if [[ -f "$ZSH_COMPDUMP" && $(find "$ZSH_COMPDUMP" -mmin -1440 2>/dev/null) ]]; then
-    compinit -C -u -d "$ZSH_COMPDUMP"
+if [[ ! -f ~/.zcompdump || ~/.zcompdump -ot ~/.zshrc ]]; then
+  compinit -d ~/.zcompdump
 else
-    compinit -u -d "$ZSH_COMPDUMP" && touch "$ZSH_COMPDUMP"
+  compinit -C -d ~/.zcompdump
 fi
-[[ ! -f "${ZSH_COMPDUMP}.zwc" || "$ZSH_COMPDUMP" -nt "${ZSH_COMPDUMP}.zwc" ]] \
-    && zcompile "$ZSH_COMPDUMP" &!
+fpath+=~/.zfunc
 
-# ── Colors (pure zsh, no OMZ needed) ────────────────────────
-autoload -Uz colors && colors
+# ── Cursor: blinking bar ─────────────────────────────────────
+precmd() { printf '\e[5 q'; }
 
-# ── Git prompt (pure zsh, replicates OMZ git_prompt_info) ────
-# Shows: [branch]  if dirty,  [branch] if clean
-_git_prompt_info() {
-    local ref
-    ref=$(git symbolic-ref HEAD 2>/dev/null) || return
-    local branch="${ref#refs/heads/}"
+# ============================================================
+#  EXPORTS
+# ============================================================
+export LANG=en_US.UTF-8
+export EDITOR='nvim'
+export VISUAL='nvim'
+export PAGER='bat'
+export STARSHIP_LOG="error"
+export MANPAGER="bat -l man -p"
 
-    # Dirty check
-    if git diff --quiet --ignore-submodules HEAD 2>/dev/null; then
-        # Clean
-        echo "%{$fg[green]%}[%{$fg[yellow]%}${branch}%{$fg[green]%}]%{$reset_color%}"
-    else
-        # Dirty
-        echo "%{$fg[green]%}[%{$fg[yellow]%}${branch}%{$fg[green]%}] %{$fg[yellow]%}⚡ %{$reset_color%}"
-    fi
-}
+export PATH="$HOME/bin:/usr/local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"       
+export PATH="$HOME/go/bin:$PATH"           
+export PATH="$HOME/.config/scripts:$PATH"
 
-# ── Prompt (exact replica of your archcraft-dwm theme) ───────
-setopt PROMPT_SUBST
-PROMPT='%{$fg_bold[red]%}>%{$fg_bold[cyan]%}>%{$fg_bold[yellow]%}> %{$fg_bold[cyan]%}   %c %{$fg_bold[yellow]%}$(_git_prompt_info)%{$fg_bold[white]%} %% %{$reset_color%}'
+# Java — uncomment and adjust path
+# export JAVA_HOME="/c/Program Files/Java/jdk-21"
+# export PATH="$JAVA_HOME/bin:$PATH"
 
-# ── Zinit ────────────────────────────────────────────────────
-ZINIT_HOME="$HOME/.local/share/zinit"
-if [[ -f "$ZINIT_HOME/zinit.git/zinit.zsh" && ! -f "$ZINIT_HOME/zinit.zsh" ]]; then
-    command mv "$ZINIT_HOME/zinit.git/"* "$ZINIT_HOME/" 2>/dev/null
+# FZF
+export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git 2>/dev/null || find . -not -path '*/.git/*'"
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND="fd --type=d --hidden --strip-cwd-prefix --exclude .git 2>/dev/null || find . -type d -not -path '*/.git/*'"
+export FZF_DEFAULT_OPTS="--height 50% --layout=default --border --color=hl:#2dd4bf"
+export FZF_CTRL_T_OPTS="--preview 'bat --color=always -n --line-range :500 {} 2>/dev/null || cat {}'"
+export FZF_ALT_C_OPTS="--preview 'ls -al {}'"
+
+# ============================================================
+#  OH-MY-ZSH
+# ============================================================
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="archcraft-dwm"
+plugins=(git)
+source "$ZSH/oh-my-zsh.sh"
+
+# ============================================================
+#  PLUGINS
+#  Install:
+#    git clone https://github.com/zsh-users/zsh-autosuggestions ~/.zsh/zsh-autosuggestions
+#    git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting
+# ============================================================
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#888888"
+[[ -f ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh ]]         && source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+[[ -f ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+# fzf
+if command -v fzf &>/dev/null; then
+  if fzf --zsh &>/dev/null 2>&1; then
+    eval "$(fzf --zsh)"
+  else
+    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+  fi
 fi
-if [[ ! -f "$ZINIT_HOME/zinit.zsh" ]]; then
-    print -P "%F{33}Installing Zinit...%f"
-    command mkdir -p "$ZINIT_HOME"
-    command git clone https://github.com/zdharma-continuum/zinit "$ZINIT_HOME"
-fi
-source "$ZINIT_HOME/zinit.zsh"
-ZINIT[COMPILATION]=no
 
-# ── Plugins — all async ──────────────────────────────────────
-zinit ice depth=1 atload"_zsh_autosuggest_start"
-zinit light zsh-users/zsh-autosuggestions
+# zoxide
+command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
 
-zinit ice depth=1
-zinit light zsh-users/zsh-history-substring-search
+# Starship — uncomment to replace OMZ prompt
+# command -v starship &>/dev/null && eval "$(starship init zsh)"
 
-zinit ice wait"0b" lucid depth=1 nocd
-zinit light Aloxaf/fzf-tab
+# ============================================================
+#  ZSH OPTIONS
+# ============================================================
+# stty -ixon removed — can cause issues in Windows Terminal / ConEmu
+setopt AUTO_CD HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY CORRECT
+HISTSIZE=100000
+SAVEHIST=100000
+HISTFILE=~/.zsh_history
 
-FAST_HIGHLIGHT_SKIP_WIDGETS+=(menu-search recent-paths)
-zinit ice wait"0c" lucid depth=1 nocd
-zinit light zdharma-continuum/fast-syntax-highlighting
+# ============================================================
+#  ALIASES
+# ============================================================
 
-# ── zoxide ───────────────────────────────────────────────────
-if (( $+commands[zoxide] )); then
-    eval "$(zoxide init zsh 2>/dev/null)"
-    alias cd='z'
-    alias cdi='zi'
-fi
-
-# ── Completion styling ───────────────────────────────────────
-zstyle ':completion:*:git-checkout:*' sort false
-zstyle ':completion:*:descriptions'   format '[%d]'
-zstyle ':completion:*'                list-colors ${(s.:.)LS_COLORS}
-zstyle ':completion:*'                menu no
-zstyle ':fzf-tab:complete:cd:*'       fzf-preview 'eza -1 --color=always $realpath 2>/dev/null || ls -1 $realpath'
-zstyle ':fzf-tab:complete:ls:*'       fzf-preview 'eza -1 --color=always $realpath 2>/dev/null || ls -1 $realpath'
-zstyle ':fzf-tab:*' fzf-flags         --color=fg:1,fg+:2 --bind=tab:accept
-zstyle ':fzf-tab:*' use-fzf-default-opts yes
-zstyle ':fzf-tab:*' switch-group      '<' '>'
-
-# ── Navigation ───────────────────────────────────────────────
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
+# Navigation — Git Bash mounts drives as /c /d not /mnt/c /mnt/d
+alias cd='z'
+alias cdi='zi'
 alias cd..='cd ..'
 alias pdw='pwd'
+alias mkcd='f() { mkdir -p "$1" && cd "$1"; }; f'
+alias down='cd /c/Users/vchagant/Downloads' 
 
-# ── Listing ──────────────────────────────────────────────────
-alias ls='eza -l  --color=always --icons --group-directories-first'
-alias la='eza -al --color=always --icons --group-directories-first'
-alias ll='eza -a  --color=always --icons --group-directories-first'
-alias lt='eza -aT --color=always --icons --group-directories-first --level=2'
-alias ltt='eza -aT --color=always --icons --group-directories-first'
+# Listing — eza preferred, exa fallback
+if command -v eza &>/dev/null; then
+  alias la='eza -al --colour=always --icons --group-directories-first'
+  alias ll='eza -a  --colour=always --icons --group-directories-first'
+  alias ls='eza -l  --colour=always --icons --group-directories-first'
+  alias lt='eza -aT --colour=always --icons --group-directories-first'
+elif command -v exa &>/dev/null; then
+  alias la='exa -al --colour=always --icons --group-directories-first'
+  alias ll='exa -a  --colour=always --icons --group-directories-first'
+  alias ls='exa -l  --colour=always --icons --group-directories-first'
+  alias lt='exa -aT --colour=always --icons --group-directories-first'
+fi
 alias l='ls'
-alias l.="eza -a --color=always --icons | grep '^\.' "
-alias listdir="ls -d */ > list"
+alias l.="ls -A | grep -E '^\\.'"
 
-# ── Git ──────────────────────────────────────────────────────
-alias gs="git status -sb"
-alias ga="git add"
-alias gaa="git add -A"
-alias gcm="git commit -m"
-alias gca="git commit --amend --no-edit"
-alias gc="git clone"
-alias gp="git push"
-alias gpb="git push -u origin"
-alias gl="git log --oneline --graph --decorate --all"
-alias gd="git diff"
-alias gds="git diff --staged"
-alias gco="git checkout"
-alias gsw="git switch"
-alias gb="git branch"
-alias gst="git stash"
-alias gstp="git stash pop"
-alias reposize="git count-objects -vH"
+# Editor
+alias n='nvim'
 
-# ── Search ───────────────────────────────────────────────────
+# Git
+alias gs='git status'
+alias ga='git add'
+alias gcm='git commit -m'
+alias gc='git clone'
+alias gp='git push'
+alias gpb='git push -u origin'
+alias reposize='git count-objects -vH'
+
+# pretty git log graph
+function glog() {
+  git log --oneline --graph --decorate --all | head -${1:-30}
+}
+
+# show what changed in last N commits (default 1)
+function gdiff() {
+  git diff HEAD~${1:-1} HEAD
+}
+
+# search through all commit messages
+function gsearch() {
+  [[ -z "$1" ]] && { echo "Usage: gsearch <term>"; return 1; }
+  git log --all --oneline --grep="$1"
+}
+
+# show all files changed in last N commits
+function gfiles() {
+  git diff --name-only HEAD~${1:-1} HEAD
+}
+
+# undo last N commits but keep changes staged
+# function gundo() {
+#   git reset --soft HEAD~${1:-1}
+# }
+
+# stash with a message
+# function gs() {
+#   [[ -z "$1" ]] && git stash || git stash push -m "$1"
+# }
+
+# list stashes and pick one to apply with fzf
+# function gsp() {
+#   local stash
+#   stash=$(git stash list | fzf | cut -d: -f1)
+#   [[ -n "$stash" ]] && git stash pop "$stash"
+# }
+
+# switch branches with fzf
+function gbr() {
+  local branch
+  branch=$(git branch -a | fzf | tr -d '* ') && git checkout "$branch"
+}
+
+# File ops
+alias cp='cp -i'
+alias mv='mv -i'
+alias cat='bat --style=header,snip,changes'
+alias df='df -h'
+alias rg='rg --sort path'
+
+# Grep
 alias grep='grep --color=auto'
 alias egrep='egrep --color=auto'
 alias fgrep='fgrep --color=auto'
-alias rg='rg --sort path'
 
-# ── QOL ──────────────────────────────────────────────────────
+# Windows clipboard & open
+alias pbcopy='clip.exe'
+alias pbpaste='powershell.exe -command "Get-Clipboard"'
+alias open='start'    
+
+# Misc
+alias cls='clear'
+alias fman='man $(man -k . | fzf | awk "{print \$1}") 2>/dev/null'
 alias please='fc -s'
-alias sudolast='sudo $(fc -ln -1)'
-alias mkcd='f() { mkdir -p "$1" && cd "$1"; }; f'
-alias path='echo $PATH | tr ":" "\n"'
-alias ports='ss -tulnp 2>/dev/null || netstat -tulnp'
-alias myip='curl -s ifconfig.me'
-alias clr='clear'
-alias q='exit'
-alias reload='exec zsh'
-alias zshrc='${EDITOR:-nvim} ~/.zshrc'
+alias lastarg='echo $_'
 
-# ── Key bindings ─────────────────────────────────────────────
-bindkey '^ '   autosuggest-accept
-bindkey '^[[A' history-substring-search-up
-bindkey '^[[B' history-substring-search-down
-bindkey '^R'   history-incremental-search-backward
-bindkey '^[[H' beginning-of-line
-bindkey '^[[F' end-of-line
+# YouTube (requires yt-dlp installed and on PATH)
+alias yta-mp3='yt-dlp --extract-audio --audio-format mp3 --embed-thumbnail'
+alias yta-flac='yt-dlp --extract-audio --audio-format flac --embed-thumbnail'
+alias yta-best='yt-dlp --extract-audio --audio-format best --embed-thumbnail'
+alias ytv-best="yt-dlp -f 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio' --embed-thumbnail --merge-output-format mp4"
 
-# ── Autosuggestion tuning ────────────────────────────────────
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+# ============================================================
+#  FUNCTIONS
+# ============================================================
 
-WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+# Sparkline — works as:  spark 1 2 3   AND   echo "1 2 3" | spark
+function spark() {
+  local -a nums
+  if [[ $# -gt 0 ]]; then
+    nums=("$@")
+  else
+    local line
+    while IFS= read -r line; do
+      for word in $line; do nums+=("$word"); done
+    done
+  fi
+  printf "%s\n" "${nums[@]}" | awk '
+    BEGIN { n = split("▁ ▂ ▃ ▄ ▅ ▆ ▇ █", b, " "); count = 0 }
+    /^-?[0-9.]+$/ {
+      data[count++] = $1
+      if (count==1 || $1<mn) mn=$1
+      if (count==1 || $1>mx) mx=$1
+    }
+    END {
+      s = (mx==mn) ? 1 : (mx-mn)/(n-1)
+      for (i=0; i<count; i++) {
+        idx = (s==0) ? 1 : int((data[i]-mn)/s)+1
+        if (idx<1) idx=1; if (idx>n) idx=n
+        printf "%s", b[idx]
+      }
+      print ""
+    }
+  '
+}
 
-[[ -d /d ]] && builtin cd /d
+# Ctrl+L — clear + sparkline
+function fancy_clear() {
+  clear
+  seq 1 "$(tput cols)" | shuf | spark
+  echo
+  zle reset-prompt
+}
+zle -N fancy_clear
+# bindkey '^L' fancy_clear
 
+# Git commits info
+function commits() {
+  if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    echo
+    echo "  usage: commits [author] [branch] [since]"
+    echo
+    echo "  all args are optional and smart — pass in any order:"
+    echo "    author  — name string matched against git log  (default: git config user.name)"
+    echo "    branch  — any valid branch or ref              (default: current branch)"
+    echo "    since   — any git date string                  (default: '1 year ago')"
+    echo
+    echo "  examples:"
+    echo "    commits"
+    echo "    commits main"
+    echo "    commits \"3 months ago\""
+    echo "    commits main \"3 months ago\""
+    echo "    commits \"John\" main \"6 months ago\""
+    echo
+    return 0
+  fi
+
+  local author=""
+  local since="1 year ago"
+  local branch=$(git rev-parse --abbrev-ref HEAD)
+
+  for arg in "$@"; do
+    if git rev-parse --verify "$arg" &>/dev/null 2>&1; then
+      branch="$arg"
+    elif [[ "$arg" =~ ^[0-9]+\ +(second|minute|hour|day|week|month|year)s?\ +ago$ || "$arg" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+      since="$arg"
+    else
+      author="$arg"
+    fi
+  done
+
+  # fallback to git config if no author arg given
+  [[ -z "$author" ]] && author=$(git config user.name)
+
+  local total=$(git log "$branch" --author="$author" --since="$since" --oneline | wc -l | tr -d ' ')
+
+  echo
+  echo "  author : $author"
+  echo "  repo   : $(basename $(git rev-parse --show-toplevel))"
+  echo "  branch : $branch"
+  echo "  since  : $since"
+  echo "  total  : $total commits"
+  echo
+
+  echo "  daily activity:"
+  git log "$branch" --author="$author" --since="$since" --format=format:%ad --date=short \
+    | uniq -c | awk '{print $1}' | spark
+  echo
+
+  echo "  top days:"
+  git log "$branch" --author="$author" --since="$since" --format=format:%ad --date=short \
+    | sort | uniq -c | sort -rn | head -5 \
+    | awk '{printf "    %s  →  %s commits\n", $2, $1}'
+  echo
+
+  echo "  recent commits:"
+  git log "$branch" --author="$author" --since="$since" --format=format:"    %ad  %s" --date=short | head -10
+  echo
+}
+
+# Letter frequency sparkline
+function letters() {
+  command cat "$@" \
+    | awk -vFS='' '{for(i=1;i<=NF;i++) if($i~/[a-zA-Z]/) w[tolower($i)]++}
+        END{for(i in w) print i,w[i]}' \
+    | sort | cut -c3- \
+    | spark
+  echo "abcdefghijklmnopqrstuvwxyz"
+}
+
+function wordfreq() {
+  command cat "$@" | tr -s '[:space:]' '\n' | tr '[:upper:]' '[:lower:]' \
+    | grep -v '^$' | sort | uniq -c | sort -rn | head -20 \
+    | awk '{printf "  %5d  %s\n", $1, $2}'
+}
+
+# Open/create file with nvim, auto-making parent dirs
+function nv() {
+  [[ -z "$1" ]] && { echo "Usage: nv path/to/file"; return 1; }
+  local file="${1/#\~/$HOME}"
+  [[ "$file" != /* ]] && file="$PWD/$file"
+  local dir="${file%/*}"
+  [[ "$dir" != "$file" && ! -d "$dir" ]] && \
+    { mkdir -p "$dir" || { echo "Failed to create: $dir"; return 2; }; }
+  nvim "$file"
+}
+
+function ex() {
+  [[ ! -f "$1" ]] && { echo "'$1' is not a valid file"; return 1; }
+  case "$1" in
+    *.tar.bz2) tar xjf "$1" ;;
+    *.tar.gz)  tar xzf "$1" ;;
+    *.tar.xz)  tar xf  "$1" ;;
+    *.tar.zst) tar xf  "$1" ;;
+    *.tar)     tar xf  "$1" ;;
+    *.gz)      gunzip  "$1" ;;
+    *.zip)     unzip   "$1" ;;
+    *.7z)      7z x    "$1" ;;
+    *.tgz)     tar xzf "$1" ;;
+    *.tbz2)    tar xjf "$1" ;;
+    *.rar)     7z x    "$1" ;;
+    *)         echo "'$1' cannot be extracted via ex()" ;;
+  esac
+}
+
+function comp() {
+  [[ -z "$1" ]] && { echo "Usage: comp <file_or_directory>"; return 1; }
+  local input="$1"
+  local options=("tar.gz" "zip" "7z" "tar.xz" "tar.zst" "tar.bz2" "tar" "gz")
+  echo "Select format:"; for i in {1..${#options[@]}}; do echo "$i) ${options[$i]}"; done
+  echo -n "Choice: "; read choice
+  [[ "$choice" -lt 1 || "$choice" -gt ${#options[@]} ]] && { echo "Invalid."; return 1; }
+  local fmt="${options[$choice]}" out="${input}.${options[$choice]}"
+  case $fmt in
+    tar.gz)  tar czf "$out" "$input" ;;
+    tar.bz2) tar cjf "$out" "$input" ;;
+    tar.xz)  tar cJf "$out" "$input" ;;
+    tar.zst) tar --zstd -cf "$out" "$input" ;;
+    tar)     tar cf  "$out" "$input" ;;
+    gz)      gzip -k "$input" ;;
+    zip)     zip -r  "$out" "$input" ;;
+    7z)      7z a    "$out" "$input" ;;
+  esac
+  echo "Done: $out"
+}
+
+# Compile + time C/C++
+function ctime() {
+  local f="$1"
+  [[ $f != *.c ]] && f="$1.c"
+  local o="${f%.c}"
+  g++ -std=c++17 "$f" -o "$o" && { time ./"$o"; }
+}
+function cpptime() {
+  local f="$1"
+  [[ $f != *.cpp ]] && f="$1.cpp"
+  local o="${f%.cpp}"
+  g++ -std=c++17 "$f" -o "$o" && { time ./"$o"; }
+}
+
+# Cheat sheet
+function cheat() { curl cht.sh/"$1"; }
+
+# Backup a file
+function backup() { cp "$1" "$1.bak"; }
+
+# Smart recursive copy
+function copy() { [[ $# -eq 2 && -d "$1" ]] && cp -r "${1%/}" "$2" || cp "$@"; }
+
+# Pipeline utils
+function coln() { while read -r line; do echo "$line" | awk "{ print \$$1 }"; done; }
+function rown()  { sed -n "${1}p"; }
+function skip()  { tail -n +"$(( $1 + 1 ))"; }
+function take()  { head -n "$1"; }
+
+# FZF dir jump (zoxide + find fallback)
+function fcd() {
+  local dir
+  dir=$(
+    { zoxide query -l 2>/dev/null; find . -maxdepth 6 -type d -not -path '*/.git/*' 2>/dev/null; } \
+    | fzf --preview 'ls -al {}'
+  ) && cd "$dir"
+}
+
+
+# Some useful functions
+
+# # fzf file finder that opens in nvim
+# function fzf-edit() {
+#   local file
+#   file=$(fzf --preview 'bat --color=always {}') && nvim "$file"
+# }
+# bindkey -s '^p' 'fzf-edit\n'
+#
+# # find and cd into any dir with fzf
+# function fzf-cd() {
+#   local dir
+#   dir=$(find . -type d -not -path '*/.git/*' 2>/dev/null | fzf --preview 'ls -al {}') && cd "$dir"
+# }
+#
+# # show disk usage of current dir sorted
+# function dsize() {
+#   du -sh ${1:-.}/* 2>/dev/null | sort -rh | head -20
+# }
+#
+# # make a dir and cd into it
+# function mkcd() {
+#   mkdir -p "$1" && cd "$1"
+# }
+#
+# # show PATH entries one per line
+# function path() {
+#   echo $PATH | tr ':' '\n' | nl
+# }
+#
+# # open current directory in Windows Explorer
+# function explore() {
+#   start "$(pwd -W)"
+# }
+#
+# # get your local and public IP
+# function myip() {
+#   echo "  local  : $(ipconfig.exe 2>/dev/null | grep 'IPv4' | head -1 | awk '{print $NF}')"
+#   echo "  public : $(curl -s ifconfig.me)"
+# }
+#
+# # flush Windows DNS cache
+# function flushdns() {
+#   ipconfig.exe /flushdns
+# }
+#
+# # timer — countdown in seconds
+# function timer() {
+#   local secs=${1:-60}
+#   while [[ $secs -gt 0 ]]; do
+#     printf "\r  ⏱  %02d:%02d remaining" $((secs/60)) $((secs%60))
+#     sleep 1
+#     (( secs-- ))
+#   done
+#   printf "\r  ✓  done!                \n"
+# }
+#
+# # quick notes — append to ~/notes.md and view
+# function note() {
+#   local file="$HOME/notes.md"
+#   if [[ -z "$1" ]]; then
+#     bat "$file" 2>/dev/null || cat "$file"
+#   else
+#     echo "$(date '+%Y-%m-%d %H:%M')  $*" >> "$file"
+#     echo "  saved."
+#   fi
+# }
+#
+# # grep through your notes
+# function noted() {
+#   grep -i "$1" "$HOME/notes.md"
+# }
