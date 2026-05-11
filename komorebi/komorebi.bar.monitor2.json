@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LGUG2Z/komorebi/v0.1.41/schema.bar.json",
+  "font_family": "Iosevka Nerd Font",
+  "font_size": 13.0,
+  "height": 36.0,
+  "monitor": { "index": 2 },
+  "position": {
+    "start": { "x": 3840, "y": 0 },
+    "end": { "x": 5760, "y": 36 }
+  },
+  "theme": {
+    "palette": "Base16",
+    "name": "TokyoNightDark",
+    "accent": "Base0D"
+  },
+  "left_widgets": [
+    {
+      "Komorebi": {
+        "workspaces": { "enable": true, "hide_empty_workspaces": true },
+        "layout": { "enable": true },
+        "focused_window": { "enable": true, "show_icon": true }
+      }
+    }
+  ],
+  "right_widgets": [
+    { "Time": { "enable": true, "format": "TwentyFourHour" } }
+  ]
+}

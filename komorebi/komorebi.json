@@ -14,6 +14,11 @@
     "unfocused_border": "Base03",
     "bar_accent": "Base0D"
   },
+  "bar_configurations": [
+    "D:/Git/Windows-dotfiles/komorebi/komorebi.bar.json",
+    "D:/Git/Windows-dotfiles/komorebi/komorebi.bar.monitor1.json",
+    "D:/Git/Windows-dotfiles/komorebi/komorebi.bar.monitor2.json"
+  ],
   "monitor_index_preferences": {
     "0": { "left": 0, "top": 0, "right": 1920, "bottom": 1080 },
     "1": { "left": 1920, "top": 0, "right": 1920, "bottom": 1080 },
@@ -35,17 +40,31 @@
       ]
     },
     {
+      "work_area_offset": { "top": 36, "bottom": 0, "left": 0, "right": 0 },
       "workspaces": [
-        { "name": "I",   "layout": "BSP" },
-        { "name": "II",  "layout": "BSP" },
-        { "name": "III", "layout": "BSP" }
+        { "name": "I",    "layout": "BSP" },
+        { "name": "II",   "layout": "BSP" },
+        { "name": "III",  "layout": "BSP" },
+        { "name": "IV",   "layout": "BSP" },
+        { "name": "V",    "layout": "BSP" },
+        { "name": "VI",   "layout": "BSP" },
+        { "name": "VII",  "layout": "BSP" },
+        { "name": "VIII", "layout": "BSP" },
+        { "name": "IX",   "layout": "BSP" }
       ]
     },
     {
+      "work_area_offset": { "top": 36, "bottom": 0, "left": 0, "right": 0 },
       "workspaces": [
-        { "name": "I",   "layout": "BSP" },
-        { "name": "II",  "layout": "BSP" },
-        { "name": "III", "layout": "BSP" }
+        { "name": "I",    "layout": "BSP" },
+        { "name": "II",   "layout": "BSP" },
+        { "name": "III",  "layout": "BSP" },
+        { "name": "IV",   "layout": "BSP" },
+        { "name": "V",    "layout": "BSP" },
+        { "name": "VI",   "layout": "BSP" },
+        { "name": "VII",  "layout": "BSP" },
+        { "name": "VIII", "layout": "BSP" },
+        { "name": "IX",   "layout": "BSP" }
       ]
     }
   ]

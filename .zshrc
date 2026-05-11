@@ -24,11 +24,7 @@ export PAGER='bat'
 export STARSHIP_LOG="error"
 export MANPAGER="bat -l man -p"
 
-export PATH="$HOME/bin:/usr/local/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.cargo/bin:$PATH"       
-export PATH="$HOME/go/bin:$PATH"           
-export PATH="$HOME/.config/scripts:$PATH"
+export PATH="$HOME/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$HOME/.config/scripts:$PATH"
 
 # Java — uncomment and adjust path
 # export JAVA_HOME="/c/Program Files/Java/jdk-21"
@@ -45,10 +41,7 @@ export FZF_ALT_C_OPTS="--preview 'ls -al {}'"
 # ============================================================
 #  OH-MY-ZSH
 # ============================================================
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="archcraft-dwm"
-plugins=(git)
-source "$ZSH/oh-my-zsh.sh"
+eval "$(starship init zsh)"
 
 # ============================================================
 #  PLUGINS
@@ -91,9 +84,8 @@ HISTFILE=~/.zsh_history
 # Navigation — Git Bash mounts drives as /c /d not /mnt/c /mnt/d
 alias cd='z'
 alias cdi='zi'
-alias cd..='cd ..'
+alias d='cd'
 alias pdw='pwd'
-alias mkcd='f() { mkdir -p "$1" && cd "$1"; }; f'
 alias down='cd /c/Users/vchagant/Downloads' 
 
 # Listing — eza preferred, exa fallback
@@ -150,7 +142,7 @@ function gfiles() {
 # }
 
 # stash with a message
-# function gs() {
+# function gst() {
 #   [[ -z "$1" ]] && git stash || git stash push -m "$1"
 # }
 
@@ -162,9 +154,11 @@ function gfiles() {
 # }
 
 # switch branches with fzf
-function gbr() {
+function gbp() {
   local branch
-  branch=$(git branch -a | fzf | tr -d '* ') && git checkout "$branch"
+  branch=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes | fzf) || return
+  echo "→ $branch"
+  git checkout "${branch#origin/}"
 }
 
 # File ops
@@ -399,85 +393,117 @@ function rown()  { sed -n "${1}p"; }
 function skip()  { tail -n +"$(( $1 + 1 ))"; }
 function take()  { head -n "$1"; }
 
-# FZF dir jump (zoxide + find fallback)
+# ============================================================
+#  Smart Directory Picker (zoxide + filesystem + fzf)
+# ============================================================
 function fcd() {
   local dir
+
   dir=$(
-    { zoxide query -l 2>/dev/null; find . -maxdepth 6 -type d -not -path '*/.git/*' 2>/dev/null; } \
-    | fzf --preview 'ls -al {}'
-  ) && cd "$dir"
+    {
+      # 1. zoxide learned dirs (FAST)
+      zoxide query -l 2>/dev/null
+
+      # 2. fallback filesystem scan (COMPLETE)
+      find ~ -type d -maxdepth 5 -not -path '*/.git/*' 2>/dev/null
+    } | awk '!seen[$0]++' | fzf \
+        --height 60% \
+        --border \
+        --preview 'eza -la --icons {} 2>/dev/null || ls -al {}' \
+        --bind 'ctrl-/:toggle-preview'
+  ) || return
+
+  # use zoxide jump (keeps learning behavior)
+  z "$dir"
+}
+
+# fzf file finder that opens in nvim
+function fzf-edit() {
+  local file
+  file=$(fzf --preview 'bat --color=always {}') && nvim "$file"
+}
+bindkey -s '^p' 'fcd\n'
+
+# show disk usage of current dir sorted
+function dsize() {
+  du -sh ${1:-.}/* 2>/dev/null | sort -rh | head -20
+}
+
+# make a dir and cd into it
+function mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+
+# open current directory in Windows Explorer
+function explore() {
+  start "$(pwd -W)"
+}
+
+# get your local and public IP
+function myip() {
+  echo "  local  : $(ipconfig.exe 2>/dev/null | grep 'IPv4' | head -1 | awk '{print $NF}')"
+  echo "  public : $(curl -s ifconfig.me)"
+}
+
+# flush Windows DNS cache
+function flushdns() {
+  ipconfig.exe /flushdns
+}
+
+# timer — countdown in seconds
+function timer() {
+  local secs=${1:-60}
+  while [[ $secs -gt 0 ]]; do
+    printf "\r  ⏱  %02d:%02d remaining" $((secs/60)) $((secs%60))
+    sleep 1
+    (( secs-- ))
+  done
+  printf "\r  ✓  done!                \n"
+}
+
+# quick notes — append to ~/notes.md and view
+function note() {
+  local file="$HOME/notes.md"
+  if [[ -z "$1" ]]; then
+    bat "$file" 2>/dev/null || cat "$file"
+  else
+    echo "$(date '+%Y-%m-%d %H:%M')  $*" >> "$file"
+    echo "  saved."
+  fi
+}
+
+# grep through your notes
+function noted() {
+  grep -i "$1" "$HOME/notes.md"
 }
 
 
-# Some useful functions
+[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
-# # fzf file finder that opens in nvim
-# function fzf-edit() {
-#   local file
-#   file=$(fzf --preview 'bat --color=always {}') && nvim "$file"
-# }
-# bindkey -s '^p' 'fzf-edit\n'
-#
-# # find and cd into any dir with fzf
-# function fzf-cd() {
-#   local dir
-#   dir=$(find . -type d -not -path '*/.git/*' 2>/dev/null | fzf --preview 'ls -al {}') && cd "$dir"
-# }
-#
-# # show disk usage of current dir sorted
-# function dsize() {
-#   du -sh ${1:-.}/* 2>/dev/null | sort -rh | head -20
-# }
-#
-# # make a dir and cd into it
-# function mkcd() {
-#   mkdir -p "$1" && cd "$1"
-# }
-#
-# # show PATH entries one per line
-# function path() {
-#   echo $PATH | tr ':' '\n' | nl
-# }
-#
-# # open current directory in Windows Explorer
-# function explore() {
-#   start "$(pwd -W)"
-# }
-#
-# # get your local and public IP
-# function myip() {
-#   echo "  local  : $(ipconfig.exe 2>/dev/null | grep 'IPv4' | head -1 | awk '{print $NF}')"
-#   echo "  public : $(curl -s ifconfig.me)"
-# }
-#
-# # flush Windows DNS cache
-# function flushdns() {
-#   ipconfig.exe /flushdns
-# }
-#
-# # timer — countdown in seconds
-# function timer() {
-#   local secs=${1:-60}
-#   while [[ $secs -gt 0 ]]; do
-#     printf "\r  ⏱  %02d:%02d remaining" $((secs/60)) $((secs%60))
-#     sleep 1
-#     (( secs-- ))
-#   done
-#   printf "\r  ✓  done!                \n"
-# }
-#
-# # quick notes — append to ~/notes.md and view
-# function note() {
-#   local file="$HOME/notes.md"
-#   if [[ -z "$1" ]]; then
-#     bat "$file" 2>/dev/null || cat "$file"
-#   else
-#     echo "$(date '+%Y-%m-%d %H:%M')  $*" >> "$file"
-#     echo "  saved."
-#   fi
-# }
-#
-# # grep through your notes
-# function noted() {
-#   grep -i "$1" "$HOME/notes.md"
-# }
+# Vi mode
+bindkey -e  # emacs mode (like OMZ default)
+
+# Common keybindings OMZ provides
+bindkey '^A' beginning-of-line
+bindkey '^E' end-of-line
+bindkey '^K' kill-line
+bindkey '^U' backward-kill-line
+bindkey '^W' backward-kill-word
+bindkey '^R' history-incremental-search-backward
+bindkey '^P' up-line-or-history
+bindkey '^N' down-line-or-history
+bindkey '^[b' backward-word   # Alt+b
+bindkey '^[f' forward-word    # Alt+f
+bindkey '^[[A' up-line-or-search    # up arrow
+bindkey '^[[B' down-line-or-search  # down arrow
+
+# History search with arrows
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey '^[[A' up-line-or-beginning-search
+bindkey '^[[B' down-line-or-beginning-search
+bindkey '^[[C' forward-char                    # Right arrow
+bindkey '^[^[[C' forward-word                  # Alt+Right  
+bindkey '^ ' autosuggest-accept               # Ctrl+Space to accept full suggestion
+bindkey '^[[1;5C' forward-word                 # Ctrl+Right — accept one word of suggestion

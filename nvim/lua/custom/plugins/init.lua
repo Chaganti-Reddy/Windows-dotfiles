@@ -12,7 +12,7 @@ return {
       'nvim-lua/plenary.nvim',
       'saghen/blink.cmp',
     },
-    event = 'BufEnter',
+    event = 'InsertEnter',
   },
 
   {
