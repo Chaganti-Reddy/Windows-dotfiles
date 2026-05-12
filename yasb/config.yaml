@@ -89,7 +89,7 @@ bars:
     widgets:
       left: ["glazewm_tiling_direction", "glazewm_workspaces", "active_window"]
       center: ["clock"]
-      right: ["cpu", "memory", "power_menu"]
+      right: ["open_meteo", "volume", "cpu", "memory", "power_menu"]
   laptop-bar:
     enabled: true
     screens: ["\\\\.\\DISPLAY1"]

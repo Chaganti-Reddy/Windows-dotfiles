@@ -170,20 +170,16 @@ window_rules:
   - commands: ["set-floating --centered"]
     match:
       - window_process: { regex: "firefox|firefox developer edition" }
-        window_title:
-          {
-            regex: ".*[Ss]ign.*[Gg]oogle.*|.*[Gg]oogle.*[Ss]ign.*|.*[Ll]og.*[Ii]n.*",
-          }
+        window_title: { regex: "(?i)sign in (to|with) google|log in" }
+
   - commands: ["set-tiling"]
     match:
-      - window_process: { equals: "firefox" }
-        window_class: { equals: "MozillaWindowClass" }
+      - window_class: { equals: "MozillaWindowClass" }
+      - window_process: { equals: "WindowsTerminal" }
 
   - commands: ["set-floating --shown-on-top"]
     match:
-      # App installers / uninstallers (most use these classes)
       - window_class: { regex: "MsiDialogCloseClass|MSIClass" }
-      - window_title: { regex: "(?i).*(install|uninstall|setup|wizard).*" }
 
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
