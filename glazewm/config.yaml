@@ -181,6 +181,11 @@ window_rules:
     match:
       - window_class: { regex: "MsiDialogCloseClass|MSIClass" }
 
+  - commands:
+      ["set-floating --centered", "resize --width 55%", "resize --height 65%"]
+    match:
+      - window_process: { equals: "SnippingTool" }
+
 binding_modes:
   # When enabled, the focused window can be resized via arrow keys or HJKL.
   - name: "resize"
