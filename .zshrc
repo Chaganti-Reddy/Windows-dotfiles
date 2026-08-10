@@ -50,6 +50,7 @@ eval "$(starship init zsh)"
 #    git clone https://github.com/zsh-users/zsh-syntax-highlighting ~/.zsh/zsh-syntax-highlighting
 # ============================================================
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#888888"
+export ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS=(forward-word)  # Ctrl+Right — word-by-word
 [[ -f ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh ]]         && source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
 [[ -f ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
@@ -422,7 +423,8 @@ function fzf-edit() {
   local file
   file=$(fzf --preview 'bat --color=always {}') && nvim "$file"
 }
-bindkey -s '^p' 'fcd\n'
+
+bindkey -s '^F' 'fcd\n'   # Ctrl+F for fuzzy directory picker
 
 # show disk usage of current dir sorted
 function dsize() {
@@ -481,9 +483,14 @@ function noted() {
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
 
 # Vi mode
-bindkey -e  # emacs mode (like OMZ default)
+bindkey -e  # emacs mode
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
 
-# Common keybindings OMZ provides
+WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
+
+# Line navigation
 bindkey '^A' beginning-of-line
 bindkey '^E' end-of-line
 bindkey '^K' kill-line
@@ -494,16 +501,23 @@ bindkey '^P' up-line-or-history
 bindkey '^N' down-line-or-history
 bindkey '^[b' backward-word   # Alt+b
 bindkey '^[f' forward-word    # Alt+f
-bindkey '^[[A' up-line-or-search    # up arrow
-bindkey '^[[B' down-line-or-search  # down arrow
 
-# History search with arrows
-autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
-zle -N up-line-or-beginning-search
-zle -N down-line-or-beginning-search
+# Arrow keys
 bindkey '^[[A' up-line-or-beginning-search
 bindkey '^[[B' down-line-or-beginning-search
-bindkey '^[[C' forward-char                    # Right arrow
-bindkey '^[^[[C' forward-word                  # Alt+Right  
-bindkey '^ ' autosuggest-accept               # Ctrl+Space to accept full suggestion
-bindkey '^[[1;5C' forward-word                 # Ctrl+Right — accept one word of suggestion
+bindkey '^[[C' forward-char
+bindkey '^[[D' backward-char
+
+# Ctrl+Arrow
+bindkey '^[[1;5C' forward-word    # Ctrl+Right
+bindkey '^[[1;5D' backward-word   # Ctrl+Left
+
+# Delete keys
+bindkey '^[[3~'   delete-char     # Delete
+bindkey '^[[3;5~' kill-word       # Ctrl+Delete
+
+# Autosuggestions
+bindkey '^ ' autosuggest-accept               # Ctrl+Space — full accept
+
+bindkey '^[[H' beginning-of-line   # Home
+bindkey '^[[F' end-of-line         # End
